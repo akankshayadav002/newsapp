@@ -8,41 +8,28 @@ const registerUser=async (req,res,next)=>{
         const {name,email,password} =req.body;
         const userExists= await User.findOne({email})
 
-        if(userExists && userExists.active){
+        if(userExists){
             return res.status(400).json({
                 success:false,
-                msg:'Entered email is already registered with us. please login to continue with us'
+                msg:'Entered email is already registered with us. Please login to continue with us'
 
-            })}else if(userExists &&!userExists.active){
-                return res.status(400).json({
-                    sucess:false,
-                    msg:'Account created but user is not active. A link is send to your registered mobile no'
-
-                })
-            }
+            })
+        }
+            
             const user=new User({
                 name,email,password
             });
 
-            crypto.randomBytes(20,function(err,buf){
-                user.activateToken=user._id + buf.toString('hex')
-                user.activeExpires =Date.now() +24 *3600*1000;
-                var link=process.env.NODE_ENV=='development'? `http://localhost:${process.env.PORT}/api/user/active/${user.activeToken}`
-                : `${process.env.api_host}/api/user/active/${user.activeToken}`;
-                mailer.send({
-                    to:req.body.email,
-                    subject:'Welcome',
-                    html:'Please click <a href="'+ link + '">here</a> to activate your account'
-                })
+          
 
                 user.save(function(err,user){
                     if(err)return next(err);
                     res.status(201).json({
                         success: true,
-                        msg:'This activation email has been sent to'+user.email+',please click on the activation link before 24 hours'
+                        msg:'Account created successfully. Please login.'
                     })
                 })
-            })
+            
         }catch(error){
             console.log(error);
             res.status(500).json({
@@ -53,34 +40,34 @@ const registerUser=async (req,res,next)=>{
     
 }
 
-const activeToken=async(req,res,next)=>{
-    User.findOne({
-        activeToken:req.params.activeToken,
-        activeExpires: {$gt:Date.now()}
-    },function (err,user){
-        if(!user){
-            return res.status(400).json({
-                success:false,
-                msg: 'Your activation link is invalid'
-            })
-        }
-        if(user.active ==true){
-            return res.status(200).json({
-                success:false,
-                msg:'Your account activated. Go and login to use this app'
-            })
-        }
-        user.active=true;
-        user.save(function(err,user){
-            if(err) return next(err);
+// const activeToken=async(req,res,next)=>{
+//     User.findOne({
+//         activeToken:req.params.activeToken,
+//         activeExpires: {$gt:Date.now()}
+//     },function (err,user){
+//         if(!user){
+//             return res.status(400).json({
+//                 success:false,
+//                 msg: 'Your activation link is invalid'
+//             })
+//         }
+//         if(user.active ==true){
+//             return res.status(200).json({
+//                 success:false,
+//                 msg:'Your account activated. Go and login to use this app'
+//             })
+//         }
+//         user.active=true;
+//         user.save(function(err,user){
+//             if(err) return next(err);
 
-            res.json({
-                sucess:true,
-                msg:'Activation success'
-            })
-        })
-    })
-}
+//             res.json({
+//                 sucess:true,
+//                 msg:'Activation success'
+//             })
+//         })
+//     })
+// }
 
 const authUser=async(req,res)=>{
     const {email,password}=req.body;
@@ -142,7 +129,6 @@ const updateUserProfile=async(req,res)=>{
 }
 module.exports={
     registerUser,
-    activeToken,
     authUser,
     getUserProfile,
     updateUserProfile
